@@ -1,0 +1,63 @@
+public class TestataController{
+
+     public Strategia__c str {get;set;} 
+     public string mandatoryTag{get;set;} 
+     public string visibileTag{get;set;}
+     public id MyId{get;set;}
+     public String stringTags{get;set;}
+     
+         //Costruttore del controller
+         
+     public testataController(ApexPages.StandardController controller) {
+         // prendi dal'impostazioni specificate dal'utente
+         // qual'campo sara visibile e quale sara obbligatorio
+         mandatoryTag= mandatoryConfiguration('CreaTestata');
+         visibileTag= visibilityConfiguration('CreaTestata');
+         // inizia la nuova testata che sta per essere inserita
+         str = new Strategia__c();
+     }
+     
+     //crea una string che contiene tutti i campi che devono essere visibili nella pagina
+    public string visibilityConfiguration(string getTags){
+    // un'string che contiene le field che saranno scelte per essere visibili
+        stringTags='';
+       
+    // una variabile per gestire il caso di una field non-string
+        for(Page_layout_control__c c:[Select id, Name, TagName__c From Page_layout_control__c Where Page__c=:getTags and Visible__c=true])
+             stringTags+= '*'+ c.TagName__c+'*';
+        return stringTags;
+    } 
+     
+     // methodi per manipolare l'obbnligatorietá 
+     public string mandatoryConfiguration(string getTags){
+     
+     // un'string che contiene quali field sarano obbligatori
+        stringTags='';
+        for(Page_layout_control__c c:[Select id, Name, TagName__c From Page_layout_control__c Where Page__c=:getTags and Mandatory__c=true])
+                stringTags+='*'+c.TagName__c+'*';
+        return stringTags;
+     }
+   
+    // update le modifiche di cliente 
+   public PageReference save() {   
+       try{
+      
+       // fissare che l'oggetto Strategia__c sara una recordType testata
+       Map<String, Schema.RecordTypeInfo> ctRecordTypes = Schema.SObjectType.Strategia__c.getRecordTypeInfosByName();
+       str.recordTypeId= ctRecordTypes.get('Testata').getRecordTypeID();
+       // inserimento di nuova testata 
+         insert str;
+       // prendi l'ide per indirizzare sulla futura pagina, contenendo un'ID  
+         MyId = str.id;
+     
+        }
+        catch(DmlException e){ // se succede qualcosa, fai nulla 
+            return null;
+        }
+        // vai sulla pagina CreaRegole con un'id della testata appena inserita
+        PageReference page = new Pagereference('/apex/CreaRegole?idMod='+ MyId);
+        page.setRedirect(true);
+        return page;
+    } 
+  
+}
