@@ -1,0 +1,45 @@
+@isTest
+ 
+ class TestataControllerTest{
+  
+   public static testmethod void testVisibilityConfigurationNS(){
+   
+       Strategia__c s = new Strategia__c();
+    // prima creamo un oggetto ApexPages.Stan.... é cosi che inizialisamo i oggetti
+       ApexPages.StandardController sc = new ApexPages.StandardController(s);
+    // una instanza di Page_layout_control__c per avere un riferimento in DB   
+       Page_layout_control__c pl= new Page_layout_control__c();
+        pl.Page__c='CreaTestata';
+        pl.TagName__c='no text';
+        pl.Mandatory__c=true;
+        pl.Visible__c=true;
+        insert(pl);
+    // un oggetto della classe per chiamare le metodi  
+       testataController tc = new testataController(sc);
+       tc.visibileTag = tc.visibilityConfiguration('pl.Page__c');
+       tc.mandatoryTag = tc.mandatoryConfiguration('pl.Page__c');
+       system.assertEquals('CreaTesta ',pl.TagName__c);
+       system.assertEquals('CreaTesta ',tc.stringTags);
+    }
+    
+    
+    public static testmethod void testsave(){
+   
+   // la creazione di una instanza di tipo TestataController
+      Strategia__c s = new Strategia__c();
+      ApexPages.StandardController sc = new ApexPages.StandardController(s);
+      testataController tc = new testataController(sc);
+   // la strategia che sta per essere inserita   
+      Strategia__c str = new Strategia__c();
+      str.Nome__c = 'Un nome Testata';
+      str.Stato__c = 'bozza';
+      str.Activation_roles__c ='r1,r2,r3';
+      insert(str); 
+      tc.myid = str.id;
+   // chiamiamo la metodi   
+      tc.save();
+    
+    }
+
+
+}
