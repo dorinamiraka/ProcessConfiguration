@@ -1,0 +1,191 @@
+public class RuleControlWrapper{
+
+    public string regole {get;set;}
+    public List<cRule> wrapRuleList {get; set;}
+    // una lista che mi viene in aiuto per salvare 
+    // la nuova wrapRuleList, con i elementi scelti, ma tipo cRule
+    public List<cRule> notSelectedWrapRuleList{get;set;}
+    public List<Rule_control__c> selectedRules{get;set;}
+    public Strategia__c str {get;set;}
+    //variabile ce permete di vizualizzare sesione regole
+    public boolean flagCreaRegole{get;set;}
+    public boolean flagSalvaRegole{get;set;}
+    public id CurrentId{get;set;}
+    public String showPage{get;set;}
+    public Strategia__c tempTestata{get;set;}
+    public Integer lastEle {get;set;}
+    
+     
+    // Inizialisamo i costruttori
+
+    //Il nostro construttore per prendere le regole possibili da scegliere
+    //*Dopo l'esecuzione del' construttore, avremo una lista con dei regoli da scegliere
+    public RuleControlWrapper(){
+    // Prima, inizia a controllare se l'id e nullo, sbagliata o corretta
+            CurrentID = getMyId(); 
+            checkId(CurrentID );
+  }
+        // prendi l'id della pagina currente
+    public id getMyId() {
+         return ApexPages.currentPage().getParameters().get('idMod'); 
+    }
+    
+    // la methodi per creare nuova regola
+    // rende il flag true per gestire l'sezione del'inserimento dati
+    // Rule Control
+    public void create() {
+       flagCreaRegole = true;
+    }
+    // la metodi che rende visibile il bottone salva regole, solo
+    // dopo essere scelto, almeno un'bottone.
+    public void flagRegolaSelezionata(){
+       flagSalvaRegole = true;
+    }
+              
+    // il methodi per salvare nuova regola                                
+    public PageReference save() {
+         // Prendi l'id della testata, La userai per tornare su la stessa pagina, dopo aver
+         // salvato una nuova regola
+         
+         CurrentId = getMyId();
+         
+         // crea l'oggetto rule control_c con dei dati inseriti dal utente
+         Rule_control__c ruleToSave = new Rule_control__c(
+                                                    Name = 'R'+System.Now(),
+                                                    Api_field_name__c = str.Conf_Api_Field_Name__c,
+                                                    Api_object_name__c = str.Conf_Api_Object_Name_Test__c,
+                                                    Condition__c= str.Conf_Condizion__c,
+                                                    Note__c= str.Conf_Note__c,
+                                                    Rule_name__c= str.Configuate_Rule_Name__c,
+                                                    Strategia_Api_Field_Name__c=str.Conf_Strategia_Api_Field_Name__c
+                                                    );
+         // inserisci field
+         insert ruleToSave;
+         //fa sparire il sessione crea regole
+         flagCreaRegole = false;
+         // riindirzzati sulla stessa pagina
+         PageReference p = new PageReference('/apex/CreaRegole?idMod='+CurrentId); 
+         p.setRedirect(true); 
+         return p;     
+    }
+     
+    
+    
+    // il methodi per aggiungere le regole scelte
+    public void processSelected() {
+    
+    // una lista che la useremo per rifrescare le regole, rimaste    
+        notSelectedWrapRuleList = new List<cRule>();
+        
+    // ora visitiamo tutte le regole possibile, che ormai, sono sul'wrapRuleList
+        for(cRule cRuleObj : wrapRuleList) {
+        
+    // se il attributo selected appare come 'true' 
+    // aggiungi nella lista selectedRules
+            if(cRuleObj.selected == true){ 
+                selectedRules.add(cRuleObj.myCRule);
+                // metti il flag del bottone Salva Regole true
+                // visto che abbiamo almeno una regola scelta
+              }  
+            else
+                // se troviamo una regola non scelta, la aggiungiamo sulla lista ausiliaria
+                // che alla fine, la wrapRuleList nuova, sara uguale a essa  
+                    notSelectedWrapRuleList.add(cRuleObj);
+        }
+       
+        // aggiorna il wrapRuleList, ora con potenzialmente cone meno
+        // regole da scegliere dopo il prcesso di selezione dal'utente
+        wrapRuleList=notSelectedWrapRuleList;
+        
+        // il controlo se non e selezionata nessun'regola 
+         if(!selectedRules.isempty() )
+        // metti true il flag della  
+            flagRegolaSelezionata();
+     }
+    
+  
+    
+    // la Methodi per salvare le regole scelte su una lista, dove 
+    // ogni regola e separata da una virgola 
+    public void saveregole() {
+    
+      // variabile ausiliaria, per togliere la ultima virgola, dal'ultimo elemento   
+         lastEle = selectedRules.size()-1;
+         
+      // Prendi l'id della testata, per sapere dove aggiungere il Activation_roles__c     
+         CurrentId = getMyId();
+         for (Rule_control__c c : selectedRules){
+             if (lastEle != 0)
+              // se non é l'ultimo elemento, aggiungilo cosi.
+                 regole+=c.Rule_name__c+',';
+             else 
+              // altrimenti, aggiungilo, senza virgola alla fine.
+                 regole+=c.Rule_name__c;
+             lastEle = lastEle -1;
+        }
+        
+        // rifresca la testata con la string, con le regole selezionate
+         update new Strategia__C(id=(CurrentId), Activation_roles__c =regole); 
+    }
+
+    // una methodi per prendere dal db una testata con un'certo ID
+    // si usa nell'construttore, nel'controllo del'id
+    public Strategia__c retrieveTestata(id testataId){
+    // variabile temporaria
+        Strategia__c tempT = new Strategia__c();
+        try{
+         // chiedi il DB se esiste una tale strategia
+            tempT = [SELECT id FROM Strategia__c WHERE id = :testataID];
+        }catch(DmlException e){
+         // se non esiste, dammi nulla
+            return null;
+        }
+        return tempTestata;
+    }
+ 
+    // Questa la nostra classe wrap, che aggiunge ad'un oggetto Rule_control__c un valore Boolean-o
+    
+    public class cRule {
+        public Rule_control__c myCRule {get; set;}
+        public Boolean selected {get; set;}
+ 
+        public cRule(Rule_control__c r) {
+            myCrule = r;
+            selected = false;
+        }
+    }
+         public void checkId(String CurrentID ){
+                   if(CurrentID == null )                                                
+             // se l'id e nullo, metti showPage=1, stato nr.1
+               showPage='1';             
+             else{
+                 tempTestata=retrieveTestata(CurrentID);
+                    if(tempTestata != null)
+                                //l'utente non ha inserito un' invalido URl, stato nr2.
+                       showPage='2';
+                    else{
+                          // procedi a visalizzare tutti i componenti della pagina , stato nr.3
+                           showPage='3';
+                         // inizia una lista, che contiene tutte le regole sezzionate    
+                          selectedRules = new List<Rule_control__c>();
+                         // inizi una nuova strategia
+                           str = new Strategia__c();
+                         // inizialisamo tutti i flag su false, perche la pagina e appena incargata
+                         // Il bottone Crea Regole, deve aparire(inverted logic)
+                         // Il sezzione dove si crea la regola, non deve aparire
+                           flagCreaRegole = false;
+                           flagSalvaRegole = false;
+                           regole='';
+                         // se la lista 'wrap' e vuota, crea una, e poi aggiunigi nella lista
+                           if(wrapRuleList == null) {
+                                wrapRuleList = new List<cRule>();
+                                for(Rule_control__c a: [select Id, Name,Api_field_name__c,Api_object_name__c,Condition__c,Note__c,
+                                                              Rule_name__c,Strategia_api_field_name__c  
+                                                              FROM Rule_control__c ]) 
+                        // As each Rule_control__c is processed we create a new cRule object and add it to the wrapRuleList
+                                wrapRuleList.add(new cRule(a)); 
+                                                   }
+                         }
+                 }
+    }        
+}
