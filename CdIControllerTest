@@ -1,0 +1,159 @@
+@istest
+    class CdIControllerTest {
+
+//test per il methodi  
+      public static testmethod void testmethodi(){
+   
+          Strategia__c s = new Strategia__c();
+          ApexPages.StandardController sc = new ApexPages.StandardController(s);
+          CdIController c = new CdIController (sc);
+
+//test il titolo del metodo se non e specificato nel url         
+          system.assertEquals(true, c.noTypeSpecified );
+
+//test il titolo del metodo se é cdu       
+          c.pageblocktitle('CDU');
+        
+          system.assertEquals( 'Crea Una CDU ',c.blockTitle );
+
+//test il titolo del metodo se é cdi         
+          c.pageblocktitle('CDi');
+
+          system.assertEquals( 'Crea Una CDI ',c.blockTitle );
+
+//test motodo back()         
+          c.back();
+          
+//test sara per il flag flagNextAction  che debba essere true           
+          system.assertEquals(true, c.flagNextAction );
+
+//test metodo back1()           
+          c.back1();
+          
+//test sara per il flag showsaveflagche debba essere true           
+          system.assertEquals(false, c.showsaveflag );
+
+//test method in cdicontroller riprova(), e ritorna() 
+          c.riprova();
+          
+          c.ritorna();
+       
+       
+        }//testmethodi()
+
+//Testmetod saveTotal()    
+      public static testmethod void testsaveTotal(){
+    
+           Strategia__c s = new Strategia__c();
+           ApexPages.StandardController sc = new ApexPages.StandardController(s);
+           CdIController c = new CdIController (sc);
+             
+           c.type = 'cdi';
+           c.saveTotal();
+     
+        }//testsaveTotal()
+
+//method per testare next()
+        public static testmethod void testNext(){
+
+//creata un elemento di tipo  Rule_control__c per popolare db in modo di testare rcList query
+             Rule_control__c rc = new Rule_control__c();
+              
+              rc.Name ='test1';
+              rc.Api_field_name__c ='Nome__c';
+              rc.Api_object_name__c = 'strategia__c';
+              rc.Condition__c = '<';
+              rc.Note__c = 'simpletest';
+              rc.Rule_name__c='r1';
+              rc.Strategia_api_field_name__c ='Rating__c';
+             
+             insert(rc);
+
+//create un nuova strategia , per prenderi id               
+               Strategia__c str1 = new Strategia__c();
+               str1.Stato__c = 'bozza';
+               str1.Activation_roles__c ='r2,r3';
+              
+              insert(str1);
+
+//con id della strategia creata faccio inserimento di una nuova strategia di tipo testata               
+              Strategia__c str = new Strategia__c();
+              str.Testata__c = str1.id;
+              str.Stato__c = 'bozza';
+              str.Activation_roles__c ='r1,r2,r3';
+              
+              insert(str); 
+              
+              
+              strategia__c s = new Strategia__c();
+              ApexPages.StandardController sc = new ApexPages.StandardController(s);
+              CdIController c = new CdIController (sc);
+
+//popolo CDI con ID del strategia creata con type testata             
+              c.CDI = [Select id, Name, Stato__c,Testata__c,Activation_roles__c from Strategia__c where Id=: str.Id];
+
+              c.Next();
+              system.assertEquals(true, c.showAsOutput );
+            
+            }//testnext()
+ 
+//test method NextAction()           
+         public static testmethod void testNextAction(){
+            
+             Strategia__c s = new Strategia__c();
+             ApexPages.StandardController sc = new ApexPages.StandardController(s);
+             CdIController c = new CdIController (sc);
+  
+     
+//testa se il obj  Rule_control__c é inserito  
+             Rule_control__c rc = new Rule_control__c();
+              
+              rc.Name ='test1';
+              rc.Api_field_name__c ='Nome__c';
+              rc.Api_object_name__c = 'strategia__c';
+              rc.Condition__c = '<';
+              rc.Note__c = 'simpletest';
+              rc.Rule_name__c='r1';
+              rc.Strategia_api_field_name__c ='Rating__c';
+             
+              insert(rc);
+              
+              system.assertEquals(false, c.flagNextAction );
+            
+             }//testNextAction()
+     
+//test method saveCDI()     
+         public static testmethod void testSaveCdi(){
+    
+              Strategia__c s = new Strategia__c();
+              ApexPages.StandardController sc = new ApexPages.StandardController(s);
+              CdIController c = new CdIController (sc);
+
+//faccio inserimento di un   Rule_control__c e poi test il method savecdi()          
+              Rule_control__c rc = new Rule_control__c();
+             
+              rc.Name ='test1';
+              rc.Api_field_name__c ='Nome__c';
+              rc.Api_object_name__c = 'strategia__c';
+              rc.Condition__c = '<';
+              rc.Note__c = 'simpletest';
+              rc.Rule_name__c='r1';
+              rc.Strategia_api_field_name__c ='Rating__c';
+             
+              insert(rc);
+              
+              c.SaveCdi();
+              
+              system.assertEquals(true, c.showsaveflag );
+    
+        }//testSaveCdi
+     
+//test iner class cRule       
+       public static testmethod void testCRuleClass(){
+  
+           Rule_control__c myRule = new Rule_control__c();
+           
+           CdIController.cRule myWrapRule = new CdIController.cRule (myRule);
+       }//testCRuleClass      
+
+}//class
