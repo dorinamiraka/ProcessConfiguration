@@ -1,0 +1,13 @@
+@istest
+
+class CreaCondControllertest{
+
+    //method in CreaCondController
+     public static testmethod void testcreacdu(){
+     CreaCondController d = new CreaCondController ();
+       d.creaCDU();
+       d.creaCDI();
+      
+    }
+
+}
