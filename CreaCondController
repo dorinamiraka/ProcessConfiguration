@@ -1,0 +1,23 @@
+public class CreaCondController {
+  
+    public CreaCondController(){
+        
+    } 
+    
+    public PageReference creaCDI (){
+        // se voi creare una CDI, vai su CdIPage, ma con type=CDI
+        PageReference page = new PageReference('/apex/CdIPage?type=CDI');
+        page.setRedirect(true);
+        return page;
+    
+    }
+    
+    public PageReference creaCDU (){
+        // se voi creare una CDU, vai su CdIPage, ma con type=CDU
+
+        PageReference page = new PageReference('/apex/CdIPage?type=CDU');
+        page.setRedirect(true);
+        return page;
+    
+    }
+}
