@@ -1,0 +1,266 @@
+public class CdIController {
+
+    public ApexPages.standardController controller  {get; set;}
+    
+    public Strategia__c TestataSelezionata{get;set;}
+    public Strategia__c CDI{get;set;}
+    
+    public List<string> ruleNames{get;set;}
+    public List<Rule_control__c> rcList{get;set;}
+    
+    public Integer lastEle{get;set;}
+    public String regole{get;set;}
+    public string mieStrApiFieldName{get;set;}
+    public String blockTitle{get;set;}
+    public string type{get;set;}
+    
+    public Boolean selected{get;set;}
+    public boolean showsaveflag{get;set;}
+    public boolean showAsOutput{get;set;}
+    public boolean flagNextAction{get;set;}
+    public boolean noTypeSpecified{get;set;}
+    public boolean showMainBlock{get;set;}
+    public boolean showerrorblock{get;set;}
+    
+    public List<cRule> notSelectedWrapRuleList{get;set;}
+    public List<Rule_control__c> selectedRules{get;set;}
+    public List<cRule> wrapRuleList {get; set;}
+
+    // Chiama il construttore
+   public CdIController(ApexPages.StandardController controller){
+        // crea l'oggetto tipo strategia, che dopo si annuncera come recordtType Condizioni_di_Ingresso
+        
+        // inizio la variabile tipo boolean, secodno i valori default
+        noTypeSpecified = false;// al inizio, non sappiamo ancora se il type e specificato
+        flagNextAction = true;
+        showerrorblock  = false;// al inizio il errorBlock non deve comparire
+        showsaveflag = false;// al inizio i bottoni next non devono comparire
+        showAsOutput = false;// prima i field devono essre aggiungibili
+        showMainBlock = true;// come default-value lasciamola true, dopo il controllo del type,
+                                     // vediamo che succedera con il main block
+        
+        // controlla se la pagina voule inserire un CDI o un CDU 
+        // e imposta il titolo del'pageBlock
+        type = ApexPages.currentPage().getParameters().get('type');
+        pageblocktitle(type);
+        //inizia la Strategia  che sta per essere inserita 
+        CDI= new Strategia__c();
+        // inizia le regole che contiene una testata qualsiasi scelta dal'utente
+        rclist= new List<Rule_control__c>();
+        // le regole che contiene la testata devono apparire 
+        // con un checkbox(oltre dire, con un attributo booleano 'selected')
+        wrapRuleList = new List<cRule>();
+        
+    }
+    
+    //metodo per titolo del'pageblock
+    public void pageblocktitle(string type){
+     if(type == 'CDI')
+            blockTitle = 'Crea Una CDI ';
+        else
+             if(type == 'CDU')
+                blockTitle = 'Crea Una CDU ';
+     else{ 
+             // se non é nessuna dei primi due casi
+             // alora, notifica l'utente con un messagio d'errore
+             // e fai scomparire il mainBlock
+                  noTypeSpecified = true;
+                  showMainBlock = false;
+                 }
+     }
+    
+    //metodi per dare la possibilitá al'utente di tornare e riprovare
+    //il inserimetno di una CdI con una testata che contiene delle regole
+    
+    public pageReference riprova(){
+        // visualizza il block del'errore
+        showerrorblock  = false;
+        
+        PageReference page;
+        //riindirizza l'utente di nuovo sulla pagina
+        if(type == 'CDI')
+            page = new Pagereference('/apex/Cdipage?type=CDI');
+        else
+            page = new Pagereference('/apex/Cdipage?type=CDU');
+        page.setRedirect(true);
+        return page;
+    }
+    
+    
+    //metodi per indirizzare l'utente sulla pagina CreaCondizioni per 
+    //scegliere il tipo di operazione che vuole proccedere
+    public pageReference ritorna(){
+    
+        //riindirizza l'utente di nuovo sulla pagina
+        PageReference page = new Pagereference('/apex/CreaCondizioni');
+        page.setRedirect(true);
+        return page;
+    }
+    
+    // metodi che si chiama quando l'utente ha scelto delle regole
+    // non puo essere piu scelta(scomparisce), se showsaveFlag == true
+    Public  PageReference Next(){
+    
+        // prendi la testata scelta dal'utente
+        TestataSelezionata= [Select id, Name, Stato__c,Activation_roles__c from Strategia__c where Id=:CDI.Testata__c];
+        
+        //leggi le regole da questa testata, e dividili, per prendere ogniuna di esse, dal'DB
+        if(TestataSelezionata.Activation_roles__c!=null)
+            ruleNames = TestataSelezionata.Activation_roles__c.split(',');
+        else ruleNames = new List<string>();
+        
+        //seleziona le regole per quella testata
+        //queste regole debbano essere scelte piu tardi
+        rcList= [Select Id, Name,Api_field_name__c,Api_object_name__c,Condition__c,Note__c,Rule_name__c,Strategia_api_field_name__c 
+                                From Rule_control__c 
+                                Where Rule_name__c In :ruleNames ];
+                                
+        // adesso popoliamo la lista wrap, per visualizzare le regole selzzionabili
+        wrapRuleList = new List<cRule>();
+        for(Rule_control__c a: rcList ) 
+            wrapRuleList.add(new cRule(a)); 
+        
+        // mettiamo invisibile il bottone Next, e comparire il bottone Save
+        nextAction();
+        
+        // metto read only i field Name e Testata
+        showAsOutput = true;   
+             
+        return null;
+    }
+    
+    // metodi ausiliario per Next()
+    Public void nextAction(){
+        // se la lista ha dei elementi, metti 
+        // via il bottone Next, dopo di essere premuto
+        // e visualizza il bottone Save(la logica e invertata, per questo va a false)
+        if (rcList.size() != 0)
+            {
+            // se ci sono elementi da scegliere 
+                 flagNextAction = false;
+            // se ci sono elementi da scegliere fai comparire il bottone
+            // next, visto che la logica del comparamento del bottone next
+            // é invertata     
+                 showsaveflag = false;
+       
+            }
+        else{
+             // se la testata scelta non contiene nessuna regola
+             // visualizza il block del'errore e scomparisci il block principale
+                
+              showerrorblock = true;
+              showMainBlock = false;
+             }
+    }
+    
+    
+// Voglio implementare il funzione saveTotal, per salvare in modo permanente la
+// cdi, dopo essere aggiunti tutti i campi specificati da Strategia_Api_Field_Name
+
+ // metodi per salvare la cdi
+    Public PageReference SaveCdi(){
+        // inizialisamo come un'string vuoto
+        mieStrApiFieldName = '';
+        
+        try{ 
+                // la lista che contiene i regoli selezzionati tramitte checkbox dal'utente    
+                    selectedRules = new List<Rule_control__c>();
+                
+                // ora visitiamo tutte le regole possibile
+                    for(cRule cRuleObj : wrapRuleList) 
+                // se il attributo selected appare come 'true' aggiungi nella lista selectedRules
+                        if(cRuleObj.selected == true) 
+                            selectedRules.add(cRuleObj.myCRule);                    
+                 
+                // qui si prendiamo cura , ad'non inserire una virgola dopo l'ultima regola che possede una Testa
+                // selezionata dal'utente 
+                    lastEle = selectedRules.size()-1;
+                     for (Rule_control__c c : selectedRules){
+                     if (lastEle != 0){regole+=c.Rule_name__c+',';}
+                     else {regole+=c.Rule_name__c;}
+                          lastEle = lastEle -1;
+                    }
+                
+                // aggiungi le regole, sul'campo responsabile del'CDI che sta per essere inserita in DB    
+                    CDI.Activation_roles__c =regole;
+                
+                // fai scomparire il bottone save(Ricorda che il bottone Save 
+                // si renderizza con una logica invertata, cioe NOT(showsaveflag))   
+                     for (Rule_control__c rcTemp : selectedRules)
+                        mieStrApiFieldName +=  rcTemp.Strategia_api_field_name__c +',';
+                     
+                // Scomparisci il bottone Next afianco della tabela 
+                // visto che abbiamo scelto delle regole     
+                    showsaveflag = true;
+                   
+                
+                   
+        }
+        catch(DmlException e){
+        }
+
+        return null;
+     }
+public PageReference saveTotal(){
+                    
+                    // se vogliamo creare una nuova CDU, proccediamo con impostazione recordType = Condizioni di Ingresso
+                   if(type == 'CDI'){
+                        // imposta il recordType Condizioni di Ingresso, per il nuovo CDI che sta per essere inserita in DB
+                            Map<String, Schema.RecordTypeInfo> ctRecordTypes = Schema.SObjectType.Strategia__c.getRecordTypeInfosByName();
+                            CDI.recordTypeId= ctRecordTypes.get('Condizioni di Ingresso').getRecordTypeID();
+                        
+                    }
+                   if(type == 'CDU') {
+                        // imposta il recordType Condizioni di Ingresso, per il nuovo CDU che sta per essere inserita in DB
+                            Map<String, Schema.RecordTypeInfo> ctRecordTypes = Schema.SObjectType.Strategia__c.getRecordTypeInfosByName();
+                            CDI.recordTypeId= ctRecordTypes.get('Condizioni di Uscita').getRecordTypeID();    
+                        }
+                        
+                    //Ora inserisci in DB la nuova Condizione di ... (in dipendenza della scelta)    
+                    insert CDI ;
+                    
+                    PageReference p;
+                    if(type == 'CDI')
+                            p = new PageReference('/apex/CdIPage?type=CDI');
+                                else 
+                                    p = new PageReference('/apex/CdIPage?type=CDU');
+                    p.setRedirect(true);
+                    return p; 
+    } 
+    
+    
+    // il buttone primo bottone di tipo-back per il nome, e testata scelta
+    // l'utente ha la possibilitá di riscegliere 
+    public void Back (){
+                // Metti true, perche dopo l'esecuzione del metodi Back(), deve comparire il bottone Next(primo)
+                  flagNextAction = true;
+                  // l'utente decide di ritornare a scegliere una nuova testata
+                  // cioe, fai scomparire tutti i campi che procedono: secondo next, il sezzione 'Compari Field'
+                  showsaveflag = false;
+                  // non visualizzare piu come output i field Nome e Testata
+                  showAsOutput = false;  
+    
+    }
+    
+    // il buttone secondo bottone di tipo-back; dopo aver scelto delle regole
+    // l'utente ha la possibilitá di riscegliere le regole
+    public void back1(){
+    
+       // L'utente vuol'tornare a riscegliere delle regole
+       // cioe rimetti accessabili i checkbox e compari il bottone next(secondo)    
+            showsaveflag = false ;
+    }
+   
+     
+     // This is our wrapper/container class. In this example a wrapper class 
+    // contains both the standard salesforce object Rule_control__c and a Boolean value
+    public class cRule {
+        public Rule_control__c myCRule {get; set;}
+        public Boolean selected {get; set;}
+ 
+        public cRule(Rule_control__c r) {
+            myCrule = r;
+            selected = false;
+        }
+    }
+}
