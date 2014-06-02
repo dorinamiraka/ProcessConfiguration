@@ -1,0 +1,260 @@
+@isTest
+ 
+ class RuleControlWrapperTest{
+ 
+ // testata succesivamente
+  public static testmethod void TestgetMyId(){
+        RuleControlWrapper rcw = new RuleControlWrapper();
+        rcw.getMyId();
+        rcw.create();
+        rcw.flagRegolaSelezionata();
+        system.assertEquals(true,rcw.flagCreaRegole );
+        system.assertEquals(true,rcw.flagSalvaRegole );
+    }
+ 
+// il metodi per testare save()
+  public static testmethod void testsave(){
+          RuleControlWrapper rcw = new RuleControlWrapper();
+    // instanza tipo Strategie, per usare i suoi campi
+    // ad inizialisare il Rule_control__c
+          strategia__c str = new strategia__C();
+          str.Conf_Api_Field_Name__c = 'Nome__c';
+          str.Conf_Api_Object_Name_Test__c = 'Strategia__c';
+          str.Conf_Condizion__c = '==';
+          str.Conf_Note__c = 'test example';
+          str.Configuate_Rule_Name__c = 'regull1';
+          str.Conf_Strategia_Api_Field_Name__c ='Error__c';
+          insert str;
+          
+      // prendiamo l'id della testata, che sta per essere allegata con la regola 
+      // che sta per essere inserita     
+          rcw.checkid(str.id);
+          
+      // la regola prende dei valori    
+           Rule_control__c r= new Rule_control__c(
+           Name = 'R'+System.Now(),
+                                                    Api_field_name__c = str.Conf_Api_Field_Name__c,
+                                                    Api_object_name__c = str.Conf_Api_Object_Name_Test__c,
+                                                    Condition__c= str.Conf_Condizion__c,
+                                                    Note__c= str.Conf_Note__c,
+                                                    Rule_name__c= str.Configuate_Rule_Name__c,
+                                                    Strategia_Api_Field_Name__c=str.Conf_Strategia_Api_Field_Name__c
+
+           
+           );
+          insert r;
+                              
+       // chiamiamo la metodi e la testiamo    
+          rcw.save();
+          system.assertEquals(false , rcw.flagCreaRegole );
+          system.assertEquals(str.id , rcw.CurrentId );
+       
+       
+  }
+  
+ //  il metodi per testare i caso dove l'utente ha scelto delle regole
+  public static testmethod void processSelected(){
+         
+      RuleControlWrapper rcw = new RuleControlWrapper();        
+      Rule_control__c rc =new Rule_control__c();
+ // inizialisamo dei oggeti Rule_control__c che dopo si
+ // aggiungerano in una Lista<Rule_control__c>
+ // il primo oggetto(regola)     
+      rc.Name ='test1';
+      rc.Api_field_name__c ='Nome__c';
+      rc.Api_object_name__c = 'strategia__c';
+      rc.Condition__c = '<';
+      rc.Note__c = 'simpletest';
+      rc.Rule_name__c='r1';
+      rc.Strategia_api_field_name__c ='Rating__c';      
+      insert rc;
+ // il secondo oggetto(regola)     
+      Rule_control__c rc1 = new Rule_control__c();
+      rc1.Name ='test1';
+      rc1.Api_field_name__c ='Nome__c';
+      rc1.Api_object_name__c = 'strategia__c';
+      rc1.Condition__c = '<';
+      rc1.Note__c = 'simpletest';
+      rc1.Rule_name__c='r2';
+      rc1.Strategia_api_field_name__c ='Rating__c';
+      insert rc1;
+      
+      list< Rule_control__c> myRClist = new list<Rule_control__c>();// lista con delle regole esistenti
+      list < RuleControlWrapper.cRule> myWrapRCList= new list< RuleControlWrapper.cRule>();// lista con regole esistente, ma che ora possedono il atributo selected
+      list< Rule_control__c> mySelectedRClist = new list<Rule_control__c>();// la lista con le regole scelte
+      
+ // aggiungiamo i oggetti che abbiamo creata pocho fá     
+      myRClist.add(rc);
+      myRClist.add(rc1);
+      
+      // popoliamo la WrapList myWrapRCList
+      for(Rule_control__c tempElement : myRClist )
+          myWrapRCList.add(new RuleControlWrapper.cRule(tempElement ));
+      // mettiamo true la variabile
+      for(RuleControlWrapper.cRule temWrapElement : myWrapRCList)
+               temWrapElement.selected=true;
+      // aggiorniamo la lista mySelectedRCList con elemnti scelti
+      for(RuleControlWrapper.cRule temWrapElement1 : myWrapRCList)
+              mySelectedRCList.add(temWrapElement1.myCRule);
+ // iniziamo le liste anche nell controller              
+      rcw.selectedRules = mySelectedRCList;
+      rcw.wrapRuleList = myWrapRCList;
+      rcw.processSelected();
+      
+        }
+        
+ // il caso con lista vuota, l'utente non sceglie nessuna regola
+     public static testmethod void processSelected2(){
+         
+      RuleControlWrapper rcw = new RuleControlWrapper();
+      Rule_control__c rc =new Rule_control__c();
+ // inizialisamo dei oggeti Rule_control__c che dopo si
+ // aggiungerano in una Lista<Rule_control__c>
+ // il primo oggetto(regola)     
+      rc.Name ='test1';
+      rc.Api_field_name__c ='Nome__c';
+      rc.Api_object_name__c = 'strategia__c';
+      rc.Condition__c = '<';
+      rc.Note__c = 'simpletest';
+      rc.Rule_name__c='r1';
+      rc.Strategia_api_field_name__c ='Rating__c';     
+      insert rc;
+ // seconda regola      
+      Rule_control__c rc1 = new Rule_control__c();
+      rc1.Name ='test1';
+      rc1.Api_field_name__c ='Nome__c';
+      rc1.Api_object_name__c = 'strategia__c';
+      rc1.Condition__c = '<';
+      rc1.Note__c = 'simpletest';
+      rc1.Rule_name__c='r2';
+      rc1.Strategia_api_field_name__c ='Rating__c';
+      insert rc1;
+      
+ // lista per le regole esistenti
+ // lista per le regole esistenti, ma di tipo cRule(selected= false, by-default)
+      list< Rule_control__c> myRClist = new list<Rule_control__c>();
+      list < RuleControlWrapper.cRule> myWrapRCList= new list< RuleControlWrapper.cRule>();
+      
+// aggiungiamo i oggetti(regole) creati con la lista      
+      myRClist.add(rc);
+      myRClist.add(rc1);
+      
+// popoliamo la WrapList myWrapRCList
+      for(Rule_control__c tempElement : myRClist )
+          myWrapRCList.add(new RuleControlWrapper.cRule(tempElement ));
+// diamo valore alle liste nell controller          
+      rcw.wrapRuleList = myWrapRCList;
+      rcw.processSelected();
+      rcw.flagRegolaSelezionata();
+      system.assertEquals(true,rcw.flagSalvaRegole);
+      
+      }
+ 
+  public static testmethod void testretrieveTestata(){
+   // proviamo a prendere da DB una testata che esiste
+   // e una che non esiste
+       RuleControlWrapper rcw = new RuleControlWrapper();
+                 
+       Strategia__c str1 = new Strategia__c();
+       str1.Stato__c = 'bozza';
+       str1.Activation_roles__c ='r2,r3';
+      
+       insert(str1);
+     
+       rcw.retrieveTestata(str1.id ); 
+       rcw.retrieveTestata(null);   
+     
+           }
+    //test show pages
+    public static testmethod void checkIdTest(){
+        
+       RuleControlWrapper rcw = new RuleControlWrapper();
+   // creeremo una strategia, per testare se l'id e valido
+   // i casi dell id nullo si esguono direttamente dall costruttore
+   
+   // prima una testata
+       Strategia__c str1 = new Strategia__c();
+       str1.Stato__c = 'bozza';
+       str1.Activation_roles__c ='r2,r3';
+       insert(str1);
+   //   
+       Strategia__c str = new Strategia__c();
+       str.Testata__c = str1.id;
+       str.Stato__c = 'bozza';
+       str.Activation_roles__c ='r1,r2,r3';
+      
+       insert(str); 
+          
+       rcw.checkId(str.id); 
+      
+    }
+     
+     // test metodo per saveRegole()
+     
+     public static testmethod void saveRegoleTest(){
+                  
+      RuleControlWrapper rcw = new RuleControlWrapper();
+      Rule_control__c rc =new Rule_control__c();
+      
+  // primo oggetto di tipo Rule_control__c
+   
+      rc.Name ='test1';
+      rc.Api_field_name__c ='Nome__c';
+      rc.Api_object_name__c = 'strategia__c';
+      rc.Condition__c = '<';
+      rc.Note__c = 'simpletest';
+      rc.Rule_name__c='r1';
+      rc.Strategia_api_field_name__c ='Rating__c';
+      
+      insert rc;
+  // secondo oggetto di tipo Rule_control__c    
+      Rule_control__c rc1 = new Rule_control__c();
+      rc1.Name ='test1';
+      rc1.Api_field_name__c ='Nome__c';
+      rc1.Api_object_name__c = 'strategia__c';
+      rc1.Condition__c = '<';
+      rc1.Note__c = 'simpletest';
+      rc1.Rule_name__c='r2';
+      rc1.Strategia_api_field_name__c ='Rating__c';
+      
+      insert rc1;
+      
+      list< Rule_control__c> myRClist = new list<Rule_control__c>();
+      
+      list < RuleControlWrapper.cRule> myWrapRCList= new list< RuleControlWrapper.cRule>();
+      
+      list< Rule_control__c> mySelectedRClist = new list<Rule_control__c>();
+      
+      
+      myRClist.add(rc);
+      myRClist.add(rc1);
+      
+      // popoliamo la WrapList myWrapRCList
+      for(Rule_control__c tempElement : myRClist )
+          myWrapRCList.add(new RuleControlWrapper.cRule(tempElement ));
+      // mettiamo true la variabile
+      for(RuleControlWrapper.cRule temWrapElement : myWrapRCList)
+               temWrapElement.selected=true;
+      // aggiorniamo la lista mySelectedRCList con elemnti scelti
+      for(RuleControlWrapper.cRule temWrapElement1 : myWrapRCList)
+              mySelectedRCList.add(temWrapElement1.myCRule);
+               
+      rcw.selectedRules = mySelectedRCList;
+      rcw.wrapRuleList = myWrapRCList;
+      
+      rcw.saveRegole();
+         
+     }      
+           
+           
+    // test la classa wrap cRule       
+   public static testmethod void testCRuleClass(){
+   
+           RuleControlWrapper rcw = new RuleControlWrapper();
+           // prova a creare un oggetto cRule
+           Rule_control__c myRule = new Rule_control__c();
+           
+          RuleControlWrapper.cRule myWrapRule = new RuleControlWrapper.cRule (myRule);
+   }        
+     
+  }
